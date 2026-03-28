@@ -18,6 +18,8 @@ const systemSchema = new mongoose.Schema({
     cpu: Number,
     memory: Number,
     disk: Number,
+    uptime: Number,
+    network: Number,
     lastUpdated: { type: Date, default: Date.now },
     logs: [
         {
@@ -37,7 +39,7 @@ const System = mongoose.model("System", systemSchema);
     app.post("/send-data", async (req, res) => {
     console.log("📥 DATA RECEIVED:", req.body);
 
-    const { systemName, cpu, memory, disk } = req.body;
+    const { systemName, cpu, memory, disk, uptime, network } = req.body;
 
     try {
         let system = await System.findOne({ systemName });
@@ -48,6 +50,8 @@ const System = mongoose.model("System", systemSchema);
                 cpu,
                 memory,
                 disk,
+                uptime,
+                network,
                 lastUpdated: new Date(),
                 logs: [{ cpu, memory, disk }]
             });
@@ -55,6 +59,8 @@ const System = mongoose.model("System", systemSchema);
             system.cpu = cpu;
             system.memory = memory;
             system.disk = disk;
+            system.uptime = uptime;
+            system.network = network;
            
             system.logs.push({ cpu, memory, disk });
             system.lastUpdated = new Date();        }

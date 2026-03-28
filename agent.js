@@ -29,13 +29,14 @@ function getDisk() {
 
 // 🔁 Send data every 3 seconds
 setInterval(async () => {
-    const data = {
-        systemName: SYSTEM_NAME,
-        cpu: getCPU(),
-        memory: getMemory(),
-        disk: getDisk()
-    };
-
+  const data = {
+    systemName: SYSTEM_NAME,
+    cpu: getCPU(),
+    memory: getMemory(),
+    disk: getDisk(),
+    uptime: os.uptime(), // seconds
+    network: Math.floor(Math.random() * 100), // fake network %
+};
     try {
         await axios.post(SERVER_URL, data);
         console.log("✅ Sent:", SYSTEM_NAME);
