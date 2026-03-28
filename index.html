@@ -1,0 +1,97 @@
+ <!DOCTYPE html>
+<html>
+<head>
+    <title>Login / Signup</title>
+
+    <style>
+        body {
+            background: linear-gradient(to right, #6a11cb, #2575fc);
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: Arial;
+        }
+
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            width: 300px;
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 10px;
+            margin: 10px 0;
+        }
+
+        button {
+            width: 100%;
+            padding: 10px;
+            background: #2575fc;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        h2 {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div class="container">
+
+    <h2>Signup</h2>
+    <input type="email" id="signupEmail" autocomplete="off" placeholder="Email">
+    <input type="password" id="signupPassword" autocomplete="new-password" placeholder="Password">
+    <button onclick="signup()">Signup</button>
+
+    <h2>Login</h2>
+    <input type="email" id="loginEmail" autocomplete="off" placeholder="Email">
+    <input type="password" id="loginPassword" autocomplete="current-password" placeholder="Password">
+    <button onclick="login()">Login</button>
+
+</div>
+
+<script>
+    async function signup() {
+        const email = document.getElementById("signupEmail").value;
+        const password = document.getElementById("signupPassword").value;
+
+        const res = await fetch("http://localhost:3000/signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+        alert(data.message);
+    }
+
+    async function login() {
+        const email = document.getElementById("loginEmail").value;
+        const password = document.getElementById("loginPassword").value;
+
+        const res = await fetch("http://localhost:3000/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ email, password })
+        });
+
+        const data = await res.json();
+
+        if (data.message === "Login successful") {
+            window.location.href = "dashboard.html";
+        } else {
+            alert(data.message);
+        }
+    }
+</script>
+
+</body>
+</html>
