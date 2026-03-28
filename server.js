@@ -8,12 +8,10 @@ app.use(cors());
 app.use(express.json());
 
 // CONNECT DB
-mongoose.connect("mongodb+srv://pushpenderkanwar:kanwar212006@cluster0.v4g9xph.mongodb.net/?appName=Cluster0")
-     {
+mongoose.connect("mongodb+srv://pushpenderkanwar:kanwar212006@cluster0.v4g9xph.mongodb.net/devops", {
     useNewUrlParser: true,
     useUnifiedTopology: true
 });
-
 // SCHEMA
 const systemSchema = new mongoose.Schema({
     systemName: String,
