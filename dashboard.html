@@ -92,13 +92,22 @@ function initChart() {
         type: "line",
         data: {
             labels: [],
-            datasets: [{
-                label: "CPU Usage",
-                data: [],
-                borderColor: "#00ffcc",
-                borderWidth: 2,
-                tension: 0.3
-            }]
+           datasets: [
+    {
+        label: "Your System",
+        data: [],
+        borderColor: "#00ffcc",
+        backgroundColor: "rgba(0,255,200,0.1)",
+        tension: 0.4
+    },
+    {
+        label: "Friend System",
+        data: [],
+        borderColor: "#0099ff",
+        backgroundColor: "rgba(0,153,255,0.1)",
+        tension: 0.4
+    }
+]
         },
         options: {
             plugins: {
@@ -115,6 +124,7 @@ function initChart() {
 async function load() {
     const res = await fetch(API_URL);
     const data = await res.json();
+    console.log(data);
 
     const container = document.getElementById("systems");
     container.innerHTML = "";
@@ -130,20 +140,29 @@ async function load() {
         const div = document.createElement("div");
         div.className = "card";
 
-        div.innerHTML = `
-            <h3>${sys.systemName}</h3>
-            <p>CPU: ${sys.cpu}%</p>
-            <p>Memory: ${sys.memory}%</p>
-            <p>Disk: ${sys.disk}%</p>
-            <p>Status: ${status}</p>
-        `;
+      div.innerHTML = `
+    <h3>${sys.systemName}</h3>
 
+    <p>CPU: ${sys.cpu}%</p>
+    <p>Memory: ${sys.memory}%</p>
+    <p>Disk: ${sys.disk}%</p>
+
+    <p>🌐 Network: ${sys.network || 0}%</p>
+    <p>⏱️ Uptime: ${sys.uptime ? Math.floor(sys.uptime / 60) : 0} mins</p>
+
+    <p>Status: ${status}</p>
+`;
         container.appendChild(div);
 
         // graph update
-        chart.data.labels.push(new Date().toLocaleTimeString());
-        chart.data.datasets[0].data.push(sys.cpu);
-    });
+        // keep only last 20 points
+if (chart.data.labels.length > 20) {
+    chart.data.labels.shift();
+    chart.data.datasets[0].data.shift();
+}
+
+chart.data.labels.push("");
+
 
     chart.update();
 }
