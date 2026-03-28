@@ -33,44 +33,36 @@ const System = mongoose.model("System", systemSchema);
 
 
 // ✅ FINAL WORKING ROUTE
-app.post("/send-data", async (req, res) => {
+
+    app.post("/send-data", async (req, res) => {
+    console.log("📥 DATA RECEIVED:", req.body);
+
     const { systemName, cpu, memory, disk } = req.body;
 
     try {
         let system = await System.findOne({ systemName });
 
-        if (system) {
-            system.cpu = cpu;
-            system.memory = memory;
-            system.disk = disk;
-            system.lastUpdated = new Date();
-
-            system.logs.push({
-                cpu,
-                memory,
-                disk
-            });
-
-            if (system.logs.length > 10) {
-                system.logs.shift();
-            }
-
-            await system.save();
-        } else {
-            const newSystem = new System({
+        if (!system) {
+            system = new System({
                 systemName,
                 cpu,
                 memory,
                 disk,
                 logs: [{ cpu, memory, disk }]
             });
-
-            await newSystem.save();
+        } else {
+            system.cpu = cpu;
+            system.memory = memory;
+            system.disk = disk;
+            system.logs.push({ cpu, memory, disk });
         }
 
-        res.send("Data saved");
+        await system.save();
+
+        res.send("OK");
+
     } catch (err) {
-        console.log(err);
+        console.log("❌ ERROR:", err.message);
         res.status(500).send("Error");
     }
 });
