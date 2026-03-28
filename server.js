@@ -48,14 +48,16 @@ const System = mongoose.model("System", systemSchema);
                 cpu,
                 memory,
                 disk,
+                lastUpdated: new Date(),
                 logs: [{ cpu, memory, disk }]
             });
         } else {
             system.cpu = cpu;
             system.memory = memory;
             system.disk = disk;
+           
             system.logs.push({ cpu, memory, disk });
-        }
+            system.lastUpdated = new Date();        }
 
         await system.save();
 

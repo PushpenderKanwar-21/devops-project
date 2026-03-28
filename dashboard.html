@@ -1,268 +1,157 @@
  <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-<title>CloudOps Monitoring System</title>
+<meta charset="UTF-8">
+<title>CloudOps Monitoring</title>
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body {
-    margin:0;
-    background:black;
-    color:#00ffcc;
-    font-family:monospace;
+    margin: 0;
+    font-family: monospace;
+    background: black;
+    color: #00ffcc;
+    overflow-x: hidden;
 }
 
-/* MATRIX BACKGROUND */
-canvas.bg {
-    position:fixed;
-    top:0;
-    left:0;
-    z-index:-1;
+/* Matrix style background */
+body::before {
+    content: "";
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: repeating-linear-gradient(
+        0deg,
+        rgba(0,255,0,0.1),
+        rgba(0,255,0,0.1) 1px,
+        transparent 1px,
+        transparent 20px
+    );
+    z-index: -1;
 }
 
-/* TITLE */
+/* Title */
 h1 {
-    text-align:center;
-    margin:20px;
-    font-size:28px;
-    text-shadow:0 0 10px #00ffcc;
+    text-align: center;
+    margin-top: 20px;
+    text-shadow: 0 0 10px #00ffcc;
 }
 
-/* CARDS */
-.container {
-    display:flex;
-    flex-wrap:wrap;
-    justify-content:center;
+/* Cards container */
+#systems {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin: 30px;
 }
 
+/* Card style */
 .card {
-    width:260px;
-    margin:15px;
-    padding:20px;
-    border-radius:12px;
-    background:rgba(0,0,0,0.85);
-    box-shadow:0 0 15px #00ffcc;
-    transition:0.3s;
+    border: 2px solid #00ffcc;
+    padding: 15px;
+    border-radius: 10px;
+    width: 220px;
+    background: rgba(0,0,0,0.8);
+    box-shadow: 0 0 15px #00ffcc;
+    transition: 0.3s;
 }
 
 .card:hover {
-    transform:scale(1.05);
+    transform: scale(1.05);
 }
 
-.green { border:2px solid #00ff00; }
-.yellow { border:2px solid yellow; }
-.red { border:2px solid red; }
-
-/* GRAPH */
-#graphContainer {
-    width:90%;
-    margin:40px auto;
+/* Chart */
+.chart-container {
+    width: 80%;
+    margin: auto;
 }
 </style>
 </head>
 
 <body>
 
-<canvas id="matrix" class="bg"></canvas>
-
 <h1>⚡ CLOUDOPS REAL-TIME MONITORING ⚡</h1>
 
-<div class="container" id="systems"></div>
+<div id="systems"></div>
 
-<div id="graphContainer">
-    <h2 style="text-align:center;">📊 CPU Usage (All Systems)</h2>
+<div class="chart-container">
     <canvas id="chart"></canvas>
 </div>
 
 <script>
+const API_URL = "https://edge-monitor-server.onrender.com/systems";
 
-//////////////// MATRIX EFFECT //////////////////
-const canvas = document.getElementById("matrix");
-const ctx = canvas.getContext("2d");
+let chart;
 
-canvas.height = window.innerHeight;
-canvas.width = window.innerWidth;
+function initChart() {
+    const ctx = document.getElementById("chart");
 
-let letters = "01DEVOPS";
-let drops = Array(200).fill(1);
-
-setInterval(()=>{
-    ctx.fillStyle="rgba(0,0,0,0.05)";
-    ctx.fillRect(0,0,canvas.width,canvas.height);
-
-    ctx.fillStyle="#00ffcc";
-    ctx.font="14px monospace";
-
-    drops.forEach((y,i)=>{
-        let text = letters[Math.floor(Math.random()*letters.length)];
-        ctx.fillText(text, i*14, y*14);
-
-        if(y*14 > canvas.height) drops[i]=0;
-        drops[i]++;
-    });
-},33);
-
-
-//////////////// GRAPH //////////////////
-let labels = [];
-
-let cpuData = {
-    "Production Cluster": [],
-    "API Gateway": [],
-    "DB Cluster": [],
-    "Staging Environment": []
-};
-
-const chart = new Chart(document.getElementById("chart"), {
-    type:'line',
-    data:{
-        labels,
-      datasets: [
-    {
-        label: "Production Cluster",
-        data: cpuData["Production Cluster"],
-        borderColor: "#00ffcc",
-        tension: 0.3,
-        borderWidth: 2,
-        pointRadius: 1
-       
-    },
-    {
-        label: "API Gateway",
-        data: cpuData["API Gateway"],
-        borderColor: "yellow",
-        tension: 0.3,
-        borderWidth: 2,
-        pointRadius: 1
-       
-    },
-    {
-        label: "DB Cluster",
-        data: cpuData["DB Cluster"],
-        borderColor: "red",
-        tension: 0.3,
-        borderWidth: 2,
-        pointRadius: 1
-       
-    },
-    {
-        label: "Staging Environment",
-        data: cpuData["Staging Environment"],
-        borderColor: "white",
-        tension: 0.3,
-        borderWidth: 2,
-        pointRadius: 1
-       
-    }
-]
-    },
-   options: {
-    responsive: true,
-    interaction: {
-    mode: 'index',
-    intersect: false
-    
-},
-
-    plugins: {
-        legend: {
-            labels: {
-                color: "#00ffcc",
-                boxWidth: 12,
+    chart = new Chart(ctx, {
+        type: "line",
+        data: {
+            labels: [],
+            datasets: [{
+                label: "CPU Usage",
+                data: [],
+                borderColor: "#00ffcc",
+                borderWidth: 2,
+                tension: 0.3
+            }]
+        },
+        options: {
+            plugins: {
+                legend: { display: false }
+            },
+            scales: {
+                x: { ticks: { color: "#0f0" } },
+                y: { ticks: { color: "#0f0" } }
             }
         }
-    },
-
-    elements: {
-        point: {
-            radius: 2
-        }
-    },
-
-    scales: {
-        y: {
-            beginAtZero: true,
-            max: 100
-        }
-    }
-}
-});
-
-
-//////////////// AI FUNCTION //////////////////
-function getAI(sys){
-    if(sys.cpu > 85 && sys.memory > 80)
-        return "🔥 CRITICAL: System overload! Immediate scaling required.";
-
-    if(sys.cpu > 80)
-        return "⚠ High CPU load detected. Consider load balancing.";
-
-    if(sys.memory > 75)
-        return "⚠ Memory usage high. Optimize services.";
-
-    if(sys.cpu < 20)
-        return "🟢 System under low load (efficient).";
-
-    return "✅ System stable and healthy.";
+    });
 }
 
-
-//////////////// LOAD DATA //////////////////
-async function load(){
-    const res = await fetch("http://localhost:3000/systems");
+async function load() {
+    const res = await fetch(API_URL);
     const data = await res.json();
 
     const container = document.getElementById("systems");
     container.innerHTML = "";
 
-   data.forEach(sys=>{
+    data.forEach(sys => {
 
-    let color="green";
-    if(sys.cpu>85) color="red";
-    else if(sys.memory>70) color="yellow";
+        const now = new Date();
+        const last = new Date(sys.lastUpdated);
+        const diff = (now - last) / 1000;
 
-    const card = document.createElement("div");
-    card.className = "card " + color;
+        let status = diff > 10 ? "🔴 OFFLINE" : "🟢 ONLINE";
 
-    card.innerHTML = `
-        <h3>${sys.systemName}</h3>
-        <p>CPU: ${sys.cpu}%</p>
-        <p>Memory: ${sys.memory}%</p>
-        <p>Disk: ${sys.disk}%</p>
-        <p>🕒 ${new Date().toLocaleTimeString()}</p>
-        <p>🤖 ${getAI(sys)}</p>
-    `;
+        const div = document.createElement("div");
+        div.className = "card";
 
-    container.appendChild(card);
+        div.innerHTML = `
+            <h3>${sys.systemName}</h3>
+            <p>CPU: ${sys.cpu}%</p>
+            <p>Memory: ${sys.memory}%</p>
+            <p>Disk: ${sys.disk}%</p>
+            <p>Status: ${status}</p>
+        `;
 
-    // ✅ SAFE DATA PUSH
-    if(cpuData[sys.systemName]){
-        cpuData[sys.systemName].push(sys.cpu);
-    }
+        container.appendChild(div);
 
-});
+        // graph update
+        chart.data.labels.push(new Date().toLocaleTimeString());
+        chart.data.datasets[0].data.push(sys.cpu);
+    });
 
-// ✅ LABEL UPDATE
-labels.push(new Date().toLocaleTimeString());
-
-if(labels.length > 10){
-    labels.shift();
-
-    for(let key in cpuData){
-        if(cpuData[key].length > 10){
-            cpuData[key].shift();
-        }
-    }
+    chart.update();
 }
 
-// ✅ UPDATE CHART PROPERLY
-chart.data.labels = labels;
-chart.update();
-}
-
-setInterval(load,3000);
+initChart();
 load();
 
+setInterval(load, 3000);
 </script>
 
 </body>
