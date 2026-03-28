@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <title>CloudOps Monitoring</title>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
 
 <style>
 body {
@@ -12,33 +12,16 @@ body {
     font-family: monospace;
     background: black;
     color: #00ffcc;
-    overflow-x: hidden;
 }
 
-/* Matrix style background */
-body::before {
-    content: "";
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    background: repeating-linear-gradient(
-        0deg,
-        rgba(0,255,0,0.1),
-        rgba(0,255,0,0.1) 1px,
-        transparent 1px,
-        transparent 20px
-    );
-    z-index: -1;
-}
-
-/* Title */
+/* TITLE */
 h1 {
     text-align: center;
     margin-top: 20px;
     text-shadow: 0 0 10px #00ffcc;
 }
 
-/* Cards container */
+/* SYSTEM CARDS */
 #systems {
     display: flex;
     justify-content: center;
@@ -47,7 +30,7 @@ h1 {
     margin: 30px;
 }
 
-/* Card style */
+/* CARD */
 .card {
     border: 2px solid #00ffcc;
     padding: 15px;
@@ -55,18 +38,9 @@ h1 {
     width: 220px;
     background: rgba(0,0,0,0.8);
     box-shadow: 0 0 15px #00ffcc;
-    transition: 0.3s;
 }
 
-.card:hover {
-    transform: scale(1.05);
-}
 
-/* Chart */
-.chart-container {
-    width: 80%;
-    margin: auto;
-}
 </style>
 </head>
 
@@ -76,101 +50,89 @@ h1 {
 
 <div id="systems"></div>
 
-<div class="chart-container">
-    <canvas id="chart"></canvas>
-</div>
 
 <script>
+console.log("JS RUNNING ✅");
+
 const API_URL = "https://edge-monitor-server.onrender.com/systems";
 
-let chart;
-
-function initChart() {
-    const ctx = document.getElementById("chart");
-
-    chart = new Chart(ctx, {
-        type: "line",
-        data: {
-            labels: [],
-           datasets: [
-    {
-        label: "Your System",
-        data: [],
-        borderColor: "#00ffcc",
-        backgroundColor: "rgba(0,255,200,0.1)",
-        tension: 0.4
-    },
-    {
-        label: "Friend System",
-        data: [],
-        borderColor: "#0099ff",
-        backgroundColor: "rgba(0,153,255,0.1)",
-        tension: 0.4
-    }
-]
-        },
-        options: {
-            plugins: {
-                legend: { display: false }
-            },
-            scales: {
-                x: { ticks: { color: "#0f0" } },
-                y: { ticks: { color: "#0f0" } }
-            }
-        }
-    });
-}
-
 async function load() {
-    const res = await fetch(API_URL);
-    const data = await res.json();
-    console.log(data);
+    try {
+        const container = document.getElementById("systems");
 
-    const container = document.getElementById("systems");
-    container.innerHTML = "";
+        // 1. SHOW LOADING
+        container.innerHTML = "<p style='text-align:center'>⏳ Server waking up... please wait</p>";
 
-    data.forEach(sys => {
+        // 2. FETCH DATA
+        const res = await fetch(API_URL, { cache: "no-store" });
 
-        const now = new Date();
-        const last = new Date(sys.lastUpdated);
-        const diff = (now - last) / 1000;
+        // handle bad response (like 502)
+        if (!res.ok) {
+            throw new Error("Server error: " + res.status);
+        }
 
-        let status = diff > 10 ? "🔴 OFFLINE" : "🟢 ONLINE";
+        const data = await res.json();
 
-        const div = document.createElement("div");
-        div.className = "card";
+        // 3. RETRY IF NO DATA
+        if (!data || data.length === 0) {
+            setTimeout(load, 2000);
+            return;
+        }
 
-      div.innerHTML = `
-    <h3>${sys.systemName}</h3>
+        // 4. CLEAR LOADING
+        container.innerHTML = "";
 
-    <p>CPU: ${sys.cpu}%</p>
-    <p>Memory: ${sys.memory}%</p>
-    <p>Disk: ${sys.disk}%</p>
+        // 5. RENDER CARDS
+        data.forEach(sys => {
 
-    <p>🌐 Network: ${sys.network || 0}%</p>
-    <p>⏱️ Uptime: ${sys.uptime ? Math.floor(sys.uptime / 60) : 0} mins</p>
+            const now = new Date();
+            const last = new Date(sys.lastUpdated);
+            const diff = (now - last) / 1000;
 
-    <p>Status: ${status}</p>
-`;
-        container.appendChild(div);
+            let status = diff > 10 ? "🔴 OFFLINE" : "🟢 ONLINE";
 
-        // graph update
-        // keep only last 20 points
-if (chart.data.labels.length > 20) {
-    chart.data.labels.shift();
-    chart.data.datasets[0].data.shift();
+            const div = document.createElement("div");
+            div.className = "card";
+
+            let role = "Unknown";
+
+            if (sys.systemName.includes("DevNode")) role = "Development";
+            else if (sys.systemName.toLowerCase().includes("edge")) role = "Client Edge";
+            else if (sys.systemName.toLowerCase().includes("prod")) role = "Production Server";
+            else if (sys.systemName.toLowerCase().includes("api")) role = "API Gateway";
+            else if (sys.systemName.toLowerCase().includes("analytics")) role = "Analytics Engine";
+
+            div.innerHTML = `
+                <h3>${sys.systemName}</h3>
+                <p>Role: ${role}</p>
+                <p>CPU: ${sys.cpu || 0}%</p>
+                <p>Memory: ${sys.memory || 0}%</p>
+                <p>Disk: ${sys.disk || 0}%</p>
+                <p>Network: ${sys.network || 0}%</p>
+                <p>Uptime: ${sys.uptime || 0} mins</p>
+                <p>Status: ${status}</p>
+            `;
+
+            container.appendChild(div);
+        });
+
+    } catch (err) {
+        console.log("ERROR:", err);
+
+        const container = document.getElementById("systems");
+
+        // ERROR UI
+        container.innerHTML = "<p style='text-align:center; color:red;'>⚠️ Server error. Retrying...</p>";
+
+        setTimeout(load, 5000);
+    }
 }
 
-chart.data.labels.push("");
-
-
-    chart.update();
-}
-
-initChart();
-load();
-
-setInterval(load, 3000);
+// AUTO RUN + REFRESH
+window.onload = () => {
+    load();
+        
+};
 </script>
 
 </body>
